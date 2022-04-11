@@ -104,11 +104,20 @@ async def get_rooms_list(message):
                                                          f"Описание: {_apart.apart_description}\n"
                                                          f"Цена: {_apart.apart_price}")
         except:
-            await bot.send_photo(message.from_user.id, media[0])
+            await bot.send_photo(message.from_user.id, media)
             await bot.send_message(message.from_user.id, f"Номер :{_apart.apart_name}\n"
                                                          f"Тип номера: {_apart.apart_type}\n"
                                                          f"Описание: {_apart.apart_description}\n"
                                                          f"Цена: {_apart.apart_price}")
+
+def delete_apart(apart_name):
+    engine = create_engine(URL.create(**DATABASE))
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+
+
+
 
 
 def change_apart_name():

@@ -4,7 +4,7 @@ import data_base.DB
 from create_bot import dp
 from handlers import client, admin, other
 from data_base import DB
-
+from handlers.other import AlbumMiddleware
 async def on_startup(_):
     print("Бот Включен")
 
@@ -16,4 +16,5 @@ admin.register_handlers_admin(dp)
 if __name__ == '__main__':
     data_base.DB.sql_start()
     data_base.DB.create_tables()
+    dp.middleware.setup(AlbumMiddleware())
     executor.start_polling(dp, skip_updates=True, on_startup=on_startup)
