@@ -1,22 +1,19 @@
-import logging
-from aiogram import Bot, Dispatcher, executor, types
-from config import TOKEN
+from aiogram import executor
 
-logging.basicConfig(level=logging.INFO)
+import data_base.DB
+from create_bot import dp
+from handlers import client, admin, other
+from data_base import DB
 
-bot = Bot(token=TOKEN)
-dp = Dispatcher(bot)
+async def on_startup(_):
+    print("Бот Включен")
 
-
-@dp.message_handler(commands=['start', 'начнём', 'начнем'])
-async def send_welcome(message: types.Message):
-    await message.answer("Привет новый пользователь!\nДавай забронируем номер вместе!")
-
-
-@dp.message_handler(commands=["booking", "бронь", "забронировать", "б"])
-async def booking():
-    pass
+client.register_handlers_client(dp)
+admin.register_handlers_admin(dp)
+# other.register_handlers_other(dp)
 
 
 if __name__ == '__main__':
-    executor.start_polling(dp, skip_updates=True)
+    data_base.DB.sql_start()
+    data_base.DB.create_tables()
+    executor.start_polling(dp, skip_updates=True, on_startup=on_startup)
