@@ -3,9 +3,10 @@ from create_bot import bot, dp
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.dispatcher.filters import Text
-from data_base.DB import add_apartment
+from data_base.DB import add_apartment, delete_apart
 from keyboards import admin_kb
 from typing import List
+
 ID = None
 
 
@@ -17,10 +18,15 @@ class FSMAdminCreate(StatesGroup):
     price = State()
 
 
+class FSMAdminDelete(StatesGroup):
+    name = State()
+
+
 async def make_changes_command(message: types.Message):
     global ID
     ID = message.from_user.id
-    await bot.send_message(message.from_user.id, "Администратор идентефицирован.", reply_markup=admin_kb.button_case_admin)
+    await bot.send_message(message.from_user.id, "Администратор идентефицирован.",
+                           reply_markup=admin_kb.button_case_admin)
     await message.delete()
 
 
@@ -99,10 +105,21 @@ async def cancel_handler(message: types.Message, state: FSMContext):
         await message.reply("OK")
 
 
-async def delete_apart_handler(message: types.Message):
+async def del_start(message: types.Message):
     if message.from_user.id == ID:
-        pass
+        await FSMAdminDelete.name.set()
+        await message.reply('Укажите имя номера который нужно удалить')
 
+
+async def delete_apart_handler(message: types.Message, state: FSMContext):
+    if message.from_user.id == ID:
+        try:
+            delete_apart(message.text)
+            await state.finish()
+            await message.reply('Номер удалён!')
+        except:
+            await FSMAdminDelete.name.set()
+            await message.reply('Неверное название номера!\nУкажите имя номера который нужно удалить!')
 
 
 def register_handlers_admin(dp: Dispatcher):
@@ -115,4 +132,5 @@ def register_handlers_admin(dp: Dispatcher):
     dp.register_message_handler(load_price, state=FSMAdminCreate.price)
     dp.register_message_handler(cancel_handler, state="*", commands=['отмена'])
     dp.register_message_handler(cancel_handler, Text(equals='отмена', ignore_case=True), state="*")
-    dp.register_message_handler(delete_apart_handler, commands=['удалить'])
+    dp.register_message_handler(del_start, commands=['удалить'], state=None)
+    dp.register_message_handler(delete_apart_handler, state=FSMAdminDelete.name)

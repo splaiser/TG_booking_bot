@@ -31,7 +31,7 @@ class Apart(Base):
     apart_price = Column(Integer)
     apart_type = Column(String)
     apart_description = Column(String)
-    aparts_photo = relationship("Apart_photo", backref="apart")
+    aparts_photo = relationship("Apart_photo", backref="apart", cascade="all, delete, delete-orphan")
     booking = relationship("Booking", secondary="apart_boking")
 
 
@@ -94,7 +94,6 @@ async def get_rooms_list(message):
     for _apart in Aparts:
         media = []
         for photo in _apart.aparts_photo:
-
             media.append(InputMediaPhoto(photo.photo_url))
 
         try:
@@ -110,13 +109,14 @@ async def get_rooms_list(message):
                                                          f"Описание: {_apart.apart_description}\n"
                                                          f"Цена: {_apart.apart_price}")
 
-def delete_apart(apart_name):
+
+def delete_apart(name):
     engine = create_engine(URL.create(**DATABASE))
     Session = sessionmaker(bind=engine)
     session = Session()
-
-
-
+    apart_to_delete = session.query(Apart).where(Apart.apart_name == name).one()
+    session.delete(apart_to_delete)
+    session.commit()
 
 
 
