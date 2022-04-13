@@ -114,8 +114,7 @@ def delete_apart(name):
     engine = create_engine(URL.create(**DATABASE))
     Session = sessionmaker(bind=engine)
     session = Session()
-    apart_to_delete = session.query(Apart).where(Apart.apart_name == name).one()
-    session.delete(apart_to_delete)
+    session.query(Apart).where(Apart.apart_name == name).last().delete()
     session.commit()
 
 
