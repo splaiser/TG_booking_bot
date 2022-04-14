@@ -1,13 +1,13 @@
 from aiogram import types, Dispatcher
 
-import data_base.DB
 from create_bot import bot, dp
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.dispatcher.filters import Text
-from data_base.DB import add_apartment, delete_apart
+from data_base.DB import add_apartment, delete_apart, get_rooms_list
 from keyboards import admin_kb
 from typing import List
+from aiogram.types import InputMediaPhoto, InputMedia, MediaGroup, InlineKeyboardMarkup, InlineKeyboardButton
 
 ID = None
 
@@ -28,7 +28,7 @@ async def make_changes_command(message: types.Message):
     global ID
     ID = message.from_user.id
     await bot.send_message(message.from_user.id, "Администратор идентефицирован.",
-                           reply_markup=admin_kb.inl_button)
+                           reply_markup=admin_kb.button_case_admin)
     await message.delete()
 
 
@@ -107,25 +107,38 @@ async def load_price(message: types.Message, state: FSMContext):
         await message.answer('Данные загруженны.')
 
 
+@dp.callback_query_handler(lambda x: x.data and x.data.startswith('del '))
+async def del_callback(callback_query: types.CallbackQuery):
+    await delete_apart(callback_query.data.replace("del ", ""))
+    await callback_query.answer(text=f'{callback_query.data.replace("del ", "")} удалена.', show_alert=True)
+
 async def del_start(message: types.Message):
     if message.from_user.id == ID:
-        await FSMAdminDelete.name.set()
-        await message.reply('Укажите имя номера который нужно удалить')
-
-async def del_callback(callback_query: types.CallbackQuery):
-    await data_base.DB.delete_apart(callback_query.data.replace())
-
-
-
-async def delete_apart_handler(message: types.Message, state: FSMContext):
-    if message.from_user.id == ID:
-        try:
-            delete_apart(message.text)
-            await state.finish()
-            await message.reply('Номер удалён!')
-        except:
-            await FSMAdminDelete.name.set()
-            await message.reply('Неверное название номера!\nУкажите имя номера который нужно удалить!')
+        Apart = await get_rooms_list()
+        for _apart in Apart:
+            media = []
+            for photo in _apart.aparts_photo:
+                media.append(InputMediaPhoto(photo.photo_url))
+            try:
+                await bot.send_media_group(message.from_user.id, media)
+                await bot.send_message(message.from_user.id, f"Номер :{_apart.apart_name}\n"
+                                                             f"Тип номера: {_apart.apart_type}\n"
+                                                             f"Описание: {_apart.apart_description}\n"
+                                                             f"Цена: {_apart.apart_price}")
+                await bot.send_message(message.from_user.id, text='^^^^^^^^^^^^^^^^^^^^',
+                                       reply_markup=InlineKeyboardMarkup().add(
+                                           InlineKeyboardButton(text=f'Удалить Номер : {_apart.apart_name}'
+                                                                , callback_data=f'del {_apart.apart_name}')))
+            except:
+                await bot.send_photo(message.from_user.id, media)
+                await bot.send_message(message.from_user.id, f"Номер :{_apart.apart_name}\n"
+                                                             f"Тип номера: {_apart.apart_type}\n"
+                                                             f"Описание: {_apart.apart_description}\n"
+                                                             f"Цена: {_apart.apart_price}")
+                await bot.send_message(message.from_user.id, text='^^^^^^^^^^^^^^^^^^^^',
+                                       reply_markup=InlineKeyboardMarkup().add(
+                                           InlineKeyboardButton(f'Удалить Номер : {_apart.apart_name}',
+                                                                callback_data=f'del {_apart.apart_name}')))
 
 
 def register_handlers_admin(dp: Dispatcher):
@@ -138,6 +151,5 @@ def register_handlers_admin(dp: Dispatcher):
     dp.register_message_handler(load_name, state=FSMAdminCreate.name)
     dp.register_message_handler(load_description, state=FSMAdminCreate.description)
     dp.register_message_handler(load_price, state=FSMAdminCreate.price)
-    dp.register_message_handler(del_start, commands=['удалить'], state=None)
-    dp.callback_query_handler(lambda x: x.data and x.data.startswith('del '))
-    dp.register_message_handler(delete_apart_handler, state=FSMAdminDelete.name)
+    # dp.callback_query_handler(del_callback, text=lambda x: x.data and x.data.startswith('del '))
+    dp.register_message_handler(del_start, commands=['удалить'])

@@ -8,6 +8,7 @@ import sqlite3 as sq
 from create_bot import bot
 from sqlalchemy.orm import query
 from aiogram.types import InputMediaPhoto, InputMedia, MediaGroup
+from sqlalchemy.orm import joinedload
 
 Base = declarative_base()
 
@@ -86,57 +87,22 @@ def add_apartment(apart_name, apart_price, apart_type, apart_description, apart_
     session.commit()
 
 
-async def get_rooms_list(message):
+async def get_rooms_list():
     engine = create_engine(URL.create(**DATABASE))
     Session = sessionmaker(bind=engine)
     session = Session()
-    Aparts = session.query(Apart).all()
-    for _apart in Aparts:
-        media = []
-        for photo in _apart.aparts_photo:
-            media.append(InputMediaPhoto(photo.photo_url))
+    Aparts = session.query(Apart).join(Apart_photo).options(joinedload('*')).all()
 
-        try:
-            await bot.send_media_group(message.from_user.id, media)
-            await bot.send_message(message.from_user.id, f"Номер :{_apart.apart_name}\n"
-                                                         f"Тип номера: {_apart.apart_type}\n"
-                                                         f"Описание: {_apart.apart_description}\n"
-                                                         f"Цена: {_apart.apart_price}")
-        except:
-            await bot.send_photo(message.from_user.id, media)
-            await bot.send_message(message.from_user.id, f"Номер :{_apart.apart_name}\n"
-                                                         f"Тип номера: {_apart.apart_type}\n"
-                                                         f"Описание: {_apart.apart_description}\n"
-                                                         f"Цена: {_apart.apart_price}")
+    return Aparts
 
 
-def delete_apart(name):
+async def delete_apart(name):
     engine = create_engine(URL.create(**DATABASE))
     Session = sessionmaker(bind=engine)
     session = Session()
-    session.query(Apart).where(Apart.apart_name == name).last().delete()
+    on_delete = session.query(Apart).filter(Apart.apart_name == name).first()
+    session.delete(on_delete)
     session.commit()
-
-
-
-def change_apart_name():
-    pass
-
-
-def change_apart_price():
-    pass
-
-
-def change_apart_type():
-    pass
-
-
-def change_apart_description():
-    pass
-
-
-def change_apart_photo():
-    pass
 
 
 def order_list():
