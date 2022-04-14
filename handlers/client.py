@@ -20,8 +20,8 @@ async def booking(user_id: types.User):
 def register_handlers_client(dp: Dispatcher):
     dp.register_message_handler(send_welcome, commands=['start', 'начнём', 'начнем'])
     dp.register_message_handler(rooms_list, commands=['номера', 'rooms'])
-    # dp.register_message_handler()
     dp.register_message_handler(booking, commands=["инфо"])
+    # dp.register_message_handler()
 
 
 
