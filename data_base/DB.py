@@ -50,8 +50,8 @@ class Booking(Base):
     __tablename__ = "Booking"
 
     booking_id = Column(Integer, primary_key=True)
-    time = Column(Time)
-    date = Column(Date)
+    time = Column(String)
+    month = Column(String)
     aparts = relationship("Apart", secondary="apart_boking", overlaps="booking")
 
 
@@ -103,6 +103,26 @@ async def delete_apart(name):
     on_delete = session.query(Apart).filter(Apart.apart_name == name).first()
     session.delete(on_delete)
     session.commit()
+
+
+async def get_room(name):
+    engine = create_engine(URL.create(**DATABASE))
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    on_select = session.query(Apart).filter(Apart.apart_name == name).first()
+    return on_select
+
+
+async def book_room(name, month, time):
+    engine = create_engine(URL.create(**DATABASE))
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    select_apart = session.query(Apart).filter(Apart.apart_name == name).first()
+    new_booking = Booking(month=month, time=time)
+    new_booking.aparts.append(select_apart)
+    session.add(new_booking)
+    session.commit()
+
 
 
 def order_list():

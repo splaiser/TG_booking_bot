@@ -20,10 +20,6 @@ class FSMAdminCreate(StatesGroup):
     price = State()
 
 
-class FSMAdminDelete(StatesGroup):
-    name = State()
-
-
 async def make_changes_command(message: types.Message):
     global ID
     ID = message.from_user.id
@@ -100,8 +96,6 @@ async def load_price(message: types.Message, state: FSMContext):
     if message.from_user.id == ID:
         async with state.proxy() as data:
             data['price'] = float(message.text)
-
-        async with state.proxy() as data:
             add_apartment(data['name'], data['price'], data['type'], data['description'], data['photo'])
         await state.finish()
         await message.answer('Данные загруженны.')
