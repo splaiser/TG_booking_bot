@@ -5,8 +5,11 @@ from create_bot import dp
 from handlers import client, admin, other
 from data_base import DB
 from handlers.other import AlbumMiddleware
+
+
 async def on_startup(_):
     print("Бот Включен")
+
 
 client.register_handlers_client(dp)
 admin.register_handlers_admin(dp)

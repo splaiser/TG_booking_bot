@@ -20,7 +20,8 @@ class User(Base):
     user_id = Column(Integer, primary_key=True)
     name = Column(String(30))
     phone = Column(String)
-    tg_ident = Column(String)
+    tg_id = Column(String)
+    users_booking = relationship("Booking", backref="users_booking", cascade="all, delete, delete-orphan")
 
 
 class Apart(Base):
@@ -33,7 +34,7 @@ class Apart(Base):
     apart_type = Column(String)
     apart_description = Column(String)
     aparts_photo = relationship("Apart_photo", backref="apart", cascade="all, delete, delete-orphan")
-    booking = relationship("Booking", secondary="apart_boking")
+    booking = relationship("Booking", secondary="apart_boking", )
 
 
 class Apart_photo(Base):
@@ -51,8 +52,10 @@ class Booking(Base):
 
     booking_id = Column(Integer, primary_key=True)
     time = Column(String)
+    day = Column(String)
     month = Column(String)
     aparts = relationship("Apart", secondary="apart_boking", overlaps="booking")
+    user_id = Column(Integer, ForeignKey(User.user_id))
 
 
 apart_boking = Table(
@@ -81,8 +84,7 @@ def add_apartment(apart_name, apart_price, apart_type, apart_description, apart_
     for photo in apart_photo:
         result.append(Apart_photo(photo_url=photo))
     new_apart.aparts_photo = result
-    # new_apart.aparts_photo = apart_photo
-    # new_photo = Apart_photo(photo_url=apart_photo, apart=new_apart)
+
     session.add(new_apart)
     session.commit()
 
@@ -113,15 +115,55 @@ async def get_room(name):
     return on_select
 
 
-async def book_room(name, month, time):
+async def book_room(name, month, day, time, user_name, id, phone):
     engine = create_engine(URL.create(**DATABASE))
     Session = sessionmaker(bind=engine)
     session = Session()
     select_apart = session.query(Apart).filter(Apart.apart_name == name).first()
-    new_booking = Booking(month=month, time=time)
+    new_booking = Booking(month=month, time=time, day=day)
+    new_user = User(name=user_name, phone=phone, tg_id=id)
     new_booking.aparts.append(select_apart)
-    session.add(new_booking)
+    new_user.users_booking.append(new_booking)
+    session.add(new_booking, new_user)
     session.commit()
+
+
+async def get_bookig_list():
+    engine = create_engine(URL.create(**DATABASE))
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    try:
+        booking_list = session.query(Booking).join(Apart.apart_name).options(joinedload('*')).all()
+    except:
+        booking_list = session.query(Booking).options(joinedload('*')).all()
+    return booking_list
+
+
+async def get_free_time_of_room(month, day):
+    engine = create_engine(URL.create(**DATABASE))
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    time_list = ['00:00', '01:00', '02:00', '03:00', '04:00', '05:00', '06:00', '07:00', '08:00', '09:00', '10:00',
+                 '11:00',
+                 '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00',
+                 '23:00']
+    busy_time = session.query(Booking.time).where(Booking.month == month and Booking.day == day).all()
+    for time in busy_time:
+        time_list.remove(time[0])
+    return time_list
+
+
+# async def get_user_info(name,phone,id):
+#     engine = create_engine(URL.create(**DATABASE))
+#     Session = sessionmaker(bind=engine)
+#     session = Session()
+#     result = []
+#     new_user = User(name=name, phone=phone, tg_id=id)
+#     new_booking = Booking(month=month, time=time, day=day)
+#     new_booking.aparts.append(select_apart)
+#     session.add(new_booking)
+#     session.commit()
+
 
 
 
