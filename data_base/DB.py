@@ -34,7 +34,7 @@ class Apart(Base):
     apart_type = Column(String)
     apart_description = Column(String)
     aparts_photo = relationship("Apart_photo", backref="apart", cascade="all, delete, delete-orphan")
-    booking = relationship("Booking", secondary="apart_boking", )
+    booking = relationship("Booking", secondary="apart_boking")
 
 
 class Apart_photo(Base):
@@ -61,7 +61,7 @@ class Booking(Base):
 apart_boking = Table(
     "apart_boking", Base.metadata,
     Column('apart_id', Integer, ForeignKey(Apart.apart_id)),
-    Column('booking_id', Integer, ForeignKey(Booking.booking_id)),
+    Column('booking_id', Integer, ForeignKey(Booking.booking_id))
 )
 
 
@@ -119,13 +119,32 @@ async def book_room(name, month, day, time, user_name, id, phone):
     engine = create_engine(URL.create(**DATABASE))
     Session = sessionmaker(bind=engine)
     session = Session()
+    select_all_user = session.query(User.tg_id).all()
     select_apart = session.query(Apart).filter(Apart.apart_name == name).first()
     new_booking = Booking(month=month, time=time, day=day)
-    new_user = User(name=user_name, phone=phone, tg_id=id)
-    new_booking.aparts.append(select_apart)
-    new_user.users_booking.append(new_booking)
-    session.add(new_booking, new_user)
-    session.commit()
+
+    for user_id in select_all_user:
+        if id == int(user_id[0]):
+            select_user = session.query(User).filter(User.tg_id == id).first()
+            new_booking.aparts.append(select_apart)
+            select_user.users_booking.append(new_booking)
+            session.add(new_booking, select_user)
+            session.commit()
+        else:
+            new_user = User(name=user_name, phone=phone, tg_id=id)
+            new_booking.aparts.append(select_apart)
+            new_user.users_booking.append(new_booking)
+            session.add(new_booking, new_user)
+            session.commit()
+
+    if len(select_all_user) == 0:
+        new_user = User(name=user_name, phone=phone, tg_id=id)
+        new_booking.aparts.append(select_apart)
+        new_user.users_booking.append(new_booking)
+        session.add(new_booking, new_user)
+        session.commit()
+
+
 
 
 async def get_bookig_list():
