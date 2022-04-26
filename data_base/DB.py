@@ -123,19 +123,19 @@ async def book_room(name, month, day, time, user_name, id, phone):
     select_apart = session.query(Apart).filter(Apart.apart_name == name).first()
     new_booking = Booking(month=month, time=time, day=day)
 
-    for user_id in select_all_user:
-        if id == int(user_id[0]):
-            select_user = session.query(User).filter(User.tg_id == id).first()
-            new_booking.aparts.append(select_apart)
-            select_user.users_booking.append(new_booking)
-            session.add(new_booking, select_user)
-            session.commit()
-        else:
-            new_user = User(name=user_name, phone=phone, tg_id=id)
-            new_booking.aparts.append(select_apart)
-            new_user.users_booking.append(new_booking)
-            session.add(new_booking, new_user)
-            session.commit()
+
+    if await get_user(id):
+        select_user = session.query(User).filter(User.tg_id == id).first()
+        new_booking.aparts.append(select_apart)
+        select_user.users_booking.append(new_booking)
+        session.add(new_booking, select_user)
+        session.commit()
+    else:
+        new_user = User(name=user_name, phone=phone, tg_id=id)
+        new_booking.aparts.append(select_apart)
+        new_user.users_booking.append(new_booking)
+        session.add(new_booking, new_user)
+        session.commit()
 
     if len(select_all_user) == 0:
         new_user = User(name=user_name, phone=phone, tg_id=id)
@@ -145,14 +145,12 @@ async def book_room(name, month, day, time, user_name, id, phone):
         session.commit()
 
 
-
-
-async def get_bookig_list():
+async def get_booking_list():
     engine = create_engine(URL.create(**DATABASE))
     Session = sessionmaker(bind=engine)
     session = Session()
     try:
-        booking_list = session.query(Booking).join(Apart.apart_name).options(joinedload('*')).all()
+        booking_list = session.query(Booking).join(Apart).options(joinedload('*')).all()
     except:
         booking_list = session.query(Booking).options(joinedload('*')).all()
     return booking_list
@@ -172,26 +170,52 @@ async def get_free_time_of_room(month, day):
     return time_list
 
 
-# async def get_user_info(name,phone,id):
-#     engine = create_engine(URL.create(**DATABASE))
-#     Session = sessionmaker(bind=engine)
-#     session = Session()
-#     result = []
-#     new_user = User(name=name, phone=phone, tg_id=id)
-#     new_booking = Booking(month=month, time=time, day=day)
-#     new_booking.aparts.append(select_apart)
-#     session.add(new_booking)
-#     session.commit()
-
-
-
-
 def order_list():
     pass
 
 
-def get_last_order():
-    pass
+def get_all_order():
+    engine = create_engine(URL.create(**DATABASE))
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    orders = session.query(Booking.booking_id, Booking.day, Booking.month, Booking.time, Apart.apart_name, User.name,
+                           User.user_id, User.phone) \
+        .join(Apart, Booking.aparts).join(User, User.user_id == Booking.user_id).all()
+    return orders
+
+
+async def delete_booking(id):
+    engine = create_engine(URL.create(**DATABASE))
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    on_delete = session.query(Booking).filter(Booking.booking_id == id).first()
+    session.delete(on_delete)
+    session.commit()
+
+
+async def get_all_user():
+    engine = create_engine(URL.create(**DATABASE))
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    all_users = session.query(User).all()
+    return all_users
+
+
+async def get_user(tg_id):
+    engine = create_engine(URL.create(**DATABASE))
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    user = session.query(User).where(User.tg_id == tg_id).first()
+    return user
+
+async def get_user_booking_fromdb(id):
+    engine = create_engine(URL.create(**DATABASE))
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    user_booking = session.query(Booking.booking_id, Booking.day, Booking.month, Booking.time, Apart.apart_name, User.name,
+                           User.user_id, User.phone) \
+        .join(Apart, Booking.aparts).join(User, User.user_id == Booking.user_id).where(User.tg_id == id).all()
+    return user_booking
 
 
 def sql_start():
